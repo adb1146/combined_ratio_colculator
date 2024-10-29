@@ -24,9 +24,13 @@ def project_financials(
     loss_ratio_reduction_salesforce, expense_ratio_reduction_salesforce, ongoing_costs_salesforce
 ):
     years = list(range(1, analysis_period + 1))
-    gwp_list, underwriting_profit_current, underwriting_profit_new = [], [], []
-    annual_savings, cumulative_savings = [], []
-    annual_savings_salesforce, cumulative_savings_salesforce = [], []
+    gwp_list = []
+    underwriting_profit_current = []
+    underwriting_profit_new = []
+    annual_savings = []
+    cumulative_savings = []
+    annual_savings_salesforce = []
+    cumulative_savings_salesforce = []
     cumulative_cash_flow = -initial_investment
     cumulative_cash_flow_salesforce = -initial_investment
     payback_period = None
@@ -49,20 +53,21 @@ def project_financials(
         underwriting_profit_new.append(profit_new)
 
         # Total Savings
-        savings = profit_new - profit_current - ongoing_costs
+        savings = profit_new - profit_current
         annual_savings.append(savings)
         cumulative_savings.append(sum(annual_savings))
 
         # Savings Attributable to Salesforce
         loss_savings_salesforce = gwp * loss_ratio_reduction_salesforce / 100
         expense_savings_salesforce = gwp * expense_ratio_reduction_salesforce / 100
-        savings_salesforce = loss_savings_salesforce + expense_savings_salesforce - ongoing_costs_salesforce
+        savings_salesforce = loss_savings_salesforce + expense_savings_salesforce
+        savings_salesforce -= ongoing_costs_salesforce  # Subtract ongoing Salesforce costs
         annual_savings_salesforce.append(savings_salesforce)
         cumulative_savings_salesforce.append(sum(annual_savings_salesforce))
 
         # Cumulative Cash Flow
-        cumulative_cash_flow += savings + ongoing_costs
-        cumulative_cash_flow_salesforce += savings_salesforce + ongoing_costs_salesforce
+        cumulative_cash_flow += savings - ongoing_costs  # Subtract total ongoing costs
+        cumulative_cash_flow_salesforce += savings_salesforce
 
         # Payback Periods
         if cumulative_cash_flow >= 0 and payback_period is None:
@@ -75,7 +80,7 @@ def project_financials(
     total_investment_salesforce = initial_investment + ongoing_costs_salesforce * analysis_period
 
     # Total Savings
-    total_savings = cumulative_savings[-1]
+    total_savings = cumulative_savings[-1] - (ongoing_costs * analysis_period)
     total_savings_salesforce = cumulative_savings_salesforce[-1]
 
     # ROI Calculations
@@ -137,7 +142,15 @@ initial_investment = st.sidebar.number_input(
 ongoing_costs_salesforce = st.sidebar.number_input(
     "Annual Ongoing Costs (in millions $):", min_value=0.0, value=1.5
 )
-ongoing_costs = ongoing_costs_salesforce  # Assuming all ongoing costs are Salesforce-related
+
+# Other Ongoing Costs (if any)
+st.sidebar.subheader("Other Ongoing Costs")
+ongoing_costs_other = st.sidebar.number_input(
+    "Annual Other Ongoing Costs (in millions $):", min_value=0.0, value=0.0
+)
+
+# Total Ongoing Costs
+ongoing_costs = ongoing_costs_salesforce + ongoing_costs_other
 
 # Attribution of Improvements to Salesforce
 st.sidebar.subheader("Attribution of Improvements to Salesforce")
@@ -228,10 +241,91 @@ st.dataframe(
 st.header("Visualization")
 
 # Combined Ratio Comparison
-# ... (existing charts)
+fig1, ax1 = plt.subplots()
+ax1.bar(
+    ['Current Combined Ratio', 'New Combined Ratio'],
+    [current_combined_ratio, new_combined_ratio],
+    color=['blue', 'green']
+)
+ax1.set_ylabel('Combined Ratio (%)')
+ax1.set_title('Combined Ratio Comparison')
+st.pyplot(fig1)
+
+# Underwriting Profit Over Time
+fig2, ax2 = plt.subplots()
+ax2.plot(
+    financial_df["Year"],
+    financial_df["Underwriting Profit Current ($M)"],
+    label='Current Underwriting Profit',
+    marker='o'
+)
+ax2.plot(
+    financial_df["Year"],
+    financial_df["Underwriting Profit New ($M)"],
+    label='New Underwriting Profit',
+    marker='o'
+)
+ax2.set_xlabel('Year')
+ax2.set_ylabel('Underwriting Profit ($M)')
+ax2.set_title('Underwriting Profit Over Time')
+ax2.legend()
+st.pyplot(fig2)
+
+# Cumulative Savings Over Time
+fig3, ax3 = plt.subplots()
+ax3.plot(
+    financial_df["Year"],
+    financial_df["Cumulative Savings ($M)"],
+    label='Cumulative Savings',
+    marker='o',
+    color='green'
+)
+ax3.set_xlabel('Year')
+ax3.set_ylabel('Cumulative Savings ($M)')
+ax3.set_title('Cumulative Savings Over Time')
+ax3.legend()
+st.pyplot(fig3)
 
 # Savings Attributable to Salesforce Over Time
-# ... (new charts as above)
+fig4, ax4 = plt.subplots()
+ax4.plot(
+    financial_df["Year"],
+    financial_df["Cumulative Savings Attributable to Salesforce ($M)"],
+    label='Cumulative Savings Attributable to Salesforce',
+    marker='o',
+    color='orange'
+)
+ax4.set_xlabel('Year')
+ax4.set_ylabel('Savings ($M)')
+ax4.set_title('Cumulative Savings Attributable to Salesforce Over Time')
+ax4.legend()
+st.pyplot(fig4)
+
+# Payback Period Visualization for Salesforce Investment
+fig5, ax5 = plt.subplots()
+cumulative_cash_flow_salesforce = [-initial_investment]
+for i in range(len(financial_df)):
+    cumulative_cash_flow_salesforce.append(
+        cumulative_cash_flow_salesforce[-1] + financial_df["Annual Savings Attributable to Salesforce ($M)"][i]
+    )
+ax5.plot(range(0, analysis_period + 1), cumulative_cash_flow_salesforce, marker='o')
+ax5.axhline(0, color='red', linestyle='--')
+ax5.set_xlabel('Year')
+ax5.set_ylabel('Cumulative Cash Flow ($M)')
+ax5.set_title('Salesforce Investment Payback Period')
+st.pyplot(fig5)
 
 # --- Narrative Explanation ---
-# ... (narrative text as above)
+st.header("How Salesforce FSC Impacts Your Metrics")
+
+st.markdown("""
+Investing in **Salesforce Financial Services Cloud (FSC)** directly contributes to improvements in your key metrics:
+
+- **Loss Ratio Reduction:** Enhanced underwriting accuracy through better data analytics and customer insights.
+
+- **Expense Ratio Reduction:** Automation of manual processes and streamlined operations reduce administrative and acquisition costs.
+
+- **Premium Growth:** Improved customer engagement and cross-selling opportunities lead to increased premiums over time.
+
+The calculations above isolate the savings and ROI attributable directly to your Salesforce investment, providing a clear picture of its financial impact.
+""")
