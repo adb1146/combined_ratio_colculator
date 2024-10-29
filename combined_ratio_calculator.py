@@ -104,271 +104,388 @@ def project_financials(
         roi_salesforce, payback_period_salesforce, total_investment_salesforce, total_savings_salesforce
     )
 
-# --- Sidebar for User Inputs ---
-st.sidebar.header("User Inputs")
+# --- Create Tabs ---
+tab1, tab2 = st.tabs(["Calculator", "User Guide"])
 
-# Current Financial Metrics
-st.sidebar.subheader("Current Financial Metrics")
-current_gwp = st.sidebar.number_input(
-    "Annual Gross Written Premiums (in millions $):", min_value=0.0, value=500.0
-)
-current_loss_ratio = st.sidebar.slider(
-    "Current Loss Ratio (%):", min_value=0.0, max_value=100.0, value=65.0
-)
-current_expense_ratio = st.sidebar.slider(
-    "Current Expense Ratio (%):", min_value=0.0, max_value=100.0, value=30.0
-)
+with tab1:
+    # --- Sidebar for User Inputs ---
+    st.sidebar.header("User Inputs")
 
-# Expected Improvements
-st.sidebar.subheader("Expected Improvements After Investment")
-loss_ratio_reduction = st.sidebar.slider(
-    "Expected Reduction in Loss Ratio (%):", min_value=0.0, max_value=5.0, value=0.5
-)
-expense_ratio_reduction = st.sidebar.slider(
-    "Expected Reduction in Expense Ratio (%):", min_value=0.0, max_value=5.0, value=1.0
-)
-premium_growth_rate = st.sidebar.slider(
-    "Annual Premium Growth Rate (%):", min_value=0.0, max_value=10.0, value=2.0
-)
-analysis_period = st.sidebar.slider(
-    "Analysis Period (Years):", min_value=1, max_value=10, value=5
-)
+    # Current Financial Metrics
+    st.sidebar.subheader("Current Financial Metrics")
+    current_gwp = st.sidebar.number_input(
+        "Annual Gross Written Premiums (in millions $):", min_value=0.0, value=500.0
+    )
+    current_loss_ratio = st.sidebar.slider(
+        "Current Loss Ratio (%):", min_value=0.0, max_value=100.0, value=65.0
+    )
+    current_expense_ratio = st.sidebar.slider(
+        "Current Expense Ratio (%):", min_value=0.0, max_value=100.0, value=30.0
+    )
 
-# Salesforce Expense Inputs
-st.sidebar.subheader("Salesforce FSC Investment Costs")
-initial_investment = st.sidebar.number_input(
-    "Initial Investment Cost (in millions $):", min_value=0.0, value=7.0
-)
-ongoing_costs_salesforce = st.sidebar.number_input(
-    "Annual Ongoing Costs (in millions $):", min_value=0.0, value=1.5
-)
+    # Expected Improvements
+    st.sidebar.subheader("Expected Improvements After Investment")
+    loss_ratio_reduction = st.sidebar.slider(
+        "Expected Reduction in Loss Ratio (%):", min_value=0.0, max_value=5.0, value=0.5
+    )
+    expense_ratio_reduction = st.sidebar.slider(
+        "Expected Reduction in Expense Ratio (%):", min_value=0.0, max_value=5.0, value=1.0
+    )
+    premium_growth_rate = st.sidebar.slider(
+        "Annual Premium Growth Rate (%):", min_value=0.0, max_value=10.0, value=2.0
+    )
+    analysis_period = st.sidebar.slider(
+        "Analysis Period (Years):", min_value=1, max_value=10, value=5
+    )
 
-# Other Ongoing Costs (if any)
-st.sidebar.subheader("Other Ongoing Costs")
-ongoing_costs_other = st.sidebar.number_input(
-    "Annual Other Ongoing Costs (in millions $):", min_value=0.0, value=0.0
-)
+    # Salesforce Expense Inputs
+    st.sidebar.subheader("Salesforce FSC Investment Costs")
+    initial_investment = st.sidebar.number_input(
+        "Initial Investment Cost (in millions $):", min_value=0.0, value=7.0
+    )
+    ongoing_costs_salesforce = st.sidebar.number_input(
+        "Annual Ongoing Costs (in millions $):", min_value=0.0, value=1.5
+    )
 
-# Total Ongoing Costs
-ongoing_costs = ongoing_costs_salesforce + ongoing_costs_other
+    # Other Ongoing Costs (if any)
+    st.sidebar.subheader("Other Ongoing Costs")
+    ongoing_costs_other = st.sidebar.number_input(
+        "Annual Other Ongoing Costs (in millions $):", min_value=0.0, value=0.0
+    )
 
-# Attribution of Improvements to Salesforce
-st.sidebar.subheader("Attribution of Improvements to Salesforce")
-loss_ratio_reduction_salesforce = st.sidebar.number_input(
-    "Loss Ratio Reduction Attributable to Salesforce (%):",
-    min_value=0.0,
-    max_value=loss_ratio_reduction,
-    value=loss_ratio_reduction * 0.8,
-    help="Portion of Loss Ratio Reduction directly due to Salesforce investment."
-)
-expense_ratio_reduction_salesforce = st.sidebar.number_input(
-    "Expense Ratio Reduction Attributable to Salesforce (%):",
-    min_value=0.0,
-    max_value=expense_ratio_reduction,
-    value=expense_ratio_reduction * 0.8,
-    help="Portion of Expense Ratio Reduction directly due to Salesforce investment."
-)
+    # Total Ongoing Costs
+    ongoing_costs = ongoing_costs_salesforce + ongoing_costs_other
 
-# --- Calculations ---
-current_combined_ratio = calculate_combined_ratio(current_loss_ratio, current_expense_ratio)
-new_loss_ratio, new_expense_ratio = calculate_new_ratios(
-    current_loss_ratio, loss_ratio_reduction, current_expense_ratio, expense_ratio_reduction
-)
-new_combined_ratio = calculate_combined_ratio(new_loss_ratio, new_expense_ratio)
+    # Attribution of Improvements to Salesforce
+    st.sidebar.subheader("Attribution of Improvements to Salesforce")
+    loss_ratio_reduction_salesforce = st.sidebar.number_input(
+        "Loss Ratio Reduction Attributable to Salesforce (%):",
+        min_value=0.0,
+        max_value=loss_ratio_reduction,
+        value=loss_ratio_reduction * 0.8,
+        help="Portion of Loss Ratio Reduction directly due to Salesforce investment."
+    )
+    expense_ratio_reduction_salesforce = st.sidebar.number_input(
+        "Expense Ratio Reduction Attributable to Salesforce (%):",
+        min_value=0.0,
+        max_value=expense_ratio_reduction,
+        value=expense_ratio_reduction * 0.8,
+        help="Portion of Expense Ratio Reduction directly due to Salesforce investment."
+    )
 
-# Perform financial projections
-(
-    financial_df, roi, payback_period, total_investment, total_savings,
-    roi_salesforce, payback_period_salesforce, total_investment_salesforce, total_savings_salesforce
-) = project_financials(
-    current_gwp, premium_growth_rate, current_loss_ratio, current_expense_ratio,
-    new_loss_ratio, new_expense_ratio, analysis_period, ongoing_costs, initial_investment,
-    loss_ratio_reduction_salesforce, expense_ratio_reduction_salesforce, ongoing_costs_salesforce
-)
+    # --- Calculations ---
+    current_combined_ratio = calculate_combined_ratio(current_loss_ratio, current_expense_ratio)
+    new_loss_ratio, new_expense_ratio = calculate_new_ratios(
+        current_loss_ratio, loss_ratio_reduction, current_expense_ratio, expense_ratio_reduction
+    )
+    new_combined_ratio = calculate_combined_ratio(new_loss_ratio, new_expense_ratio)
 
-# --- Display Results ---
-st.header("Executive Summary")
+    # Perform financial projections
+    (
+        financial_df, roi, payback_period, total_investment, total_savings,
+        roi_salesforce, payback_period_salesforce, total_investment_salesforce, total_savings_salesforce
+    ) = project_financials(
+        current_gwp, premium_growth_rate, current_loss_ratio, current_expense_ratio,
+        new_loss_ratio, new_expense_ratio, analysis_period, ongoing_costs, initial_investment,
+        loss_ratio_reduction_salesforce, expense_ratio_reduction_salesforce, ongoing_costs_salesforce
+    )
 
-# Summarize key improvements and financial impacts
-st.markdown(f"""
-**Projected Improvement in Combined Ratio:**
+    # --- Display Results ---
+    st.header("Executive Summary")
 
-- The combined ratio is projected to improve from **{current_combined_ratio:.2f}%** to **{new_combined_ratio:.2f}%**, indicating enhanced profitability.
+    # Summarize key improvements and financial impacts
+    st.markdown(f"""
+    **Projected Improvement in Combined Ratio:**
 
-**Total Financial Impact:**
+    - The combined ratio is projected to improve from **{current_combined_ratio:.2f}%** to **{new_combined_ratio:.2f}%**, indicating enhanced profitability.
 
-- **Total Investment:** \${total_investment:.2f} million
-- **Total Savings Over {analysis_period} Years:** \${total_savings:.2f} million
-- **Return on Investment (ROI):** {roi:.2f}%
-- **Payback Period:** {payback_period if payback_period else 'Not Achieved'} years
-""")
+    **Total Financial Impact:**
 
-# --- Financial Highlights ---
-st.subheader("Financial Highlights")
+    - **Total Investment:** \${total_investment:.2f} million
+    - **Total Savings Over {analysis_period} Years:** \${total_savings:.2f} million
+    - **Return on Investment (ROI):** {roi:.2f}%
+    - **Payback Period:** {payback_period if payback_period else 'Not Achieved'} years
+    """)
 
-col3, col4 = st.columns(2)
-with col3:
-    st.metric("Reduction in Loss Ratio (%)", f"{loss_ratio_reduction:.2f}%", help="Includes improvements from Salesforce's Advanced Data Analytics.")
-    st.metric("Reduction in Expense Ratio (%)", f"{expense_ratio_reduction:.2f}%", help="Includes savings from Salesforce's Process Automation.")
-    st.metric("Annual Premium Growth Rate (%)", f"{premium_growth_rate:.2f}%")
-with col4:
-    st.metric("Return on Investment (ROI)", f"{roi:.2f}%", help="Overall ROI from the investment.")
-    st.metric("Payback Period", f"{payback_period if payback_period else 'Not Achieved'} years")
-    st.metric("Salesforce ROI", f"{roi_salesforce:.2f}%")
-    st.metric("Salesforce Payback Period", f"{payback_period_salesforce if payback_period_salesforce else 'Not Achieved'} years")
+    # --- Financial Highlights ---
+    st.subheader("Financial Highlights")
 
-# --- Salesforce Feature Impact ---
-st.subheader("How Salesforce FSC Drives These Improvements")
+    col3, col4 = st.columns(2)
+    with col3:
+        st.metric("Reduction in Loss Ratio (%)", f"{loss_ratio_reduction:.2f}%", help="Includes improvements from Salesforce's Advanced Data Analytics.")
+        st.metric("Reduction in Expense Ratio (%)", f"{expense_ratio_reduction:.2f}%", help="Includes savings from Salesforce's Process Automation.")
+        st.metric("Annual Premium Growth Rate (%)", f"{premium_growth_rate:.2f}%")
+    with col4:
+        st.metric("Return on Investment (ROI)", f"{roi:.2f}%", help="Overall ROI from the investment.")
+        st.metric("Payback Period", f"{payback_period if payback_period else 'Not Achieved'} years")
+        st.metric("Salesforce ROI", f"{roi_salesforce:.2f}%")
+        st.metric("Salesforce Payback Period", f"{payback_period_salesforce if payback_period_salesforce else 'Not Achieved'} years")
 
-feature_impact_df = pd.DataFrame({
-    "Salesforce Feature": [
-        "Advanced Data Analytics",
-        "Process Automation",
-        "Unified Customer View",
-    ],
-    "Operational Improvement": [
-        "Better underwriting decisions",
-        "Reduced administrative workload",
-        "Enhanced customer relationships"
-    ],
-    "Financial Impact": [
-        f"Reduction in Loss Ratio by {loss_ratio_reduction_salesforce:.2f}%",
-        f"Reduction in Expense Ratio by {expense_ratio_reduction_salesforce:.2f}%",
-        f"Premium Growth Rate of {premium_growth_rate:.2f}%"
-    ]
-})
+    # --- Salesforce Feature Impact ---
+    st.subheader("How Salesforce FSC Drives These Improvements")
 
-st.table(feature_impact_df)
-
-# --- Detailed Financial Projections ---
-st.subheader("Detailed Financial Projections")
-
-# Display the financial projections
-st.dataframe(
-    financial_df.style.format({
-        "Projected Premiums ($M)": "{:,.2f}",
-        "Current Operating Profit ($M)": "{:,.2f}",
-        "Projected Operating Profit ($M)": "{:,.2f}",
-        "Annual Savings ($M)": "{:,.2f}",
-        "Cumulative Savings ($M)": "{:,.2f}",
-        "Annual Savings from Salesforce ($M)": "{:,.2f}",
-        "Cumulative Salesforce Savings ($M)": "{:,.2f}",
+    feature_impact_df = pd.DataFrame({
+        "Salesforce Feature": [
+            "Advanced Data Analytics",
+            "Process Automation",
+            "Unified Customer View",
+        ],
+        "Operational Improvement": [
+            "Better underwriting decisions",
+            "Reduced administrative workload",
+            "Enhanced customer relationships"
+        ],
+        "Financial Impact": [
+            f"Reduction in Loss Ratio by {loss_ratio_reduction_salesforce:.2f}%",
+            f"Reduction in Expense Ratio by {expense_ratio_reduction_salesforce:.2f}%",
+            f"Premium Growth Rate of {premium_growth_rate:.2f}%"
+        ]
     })
-)
 
-# --- Visualization ---
-st.header("Visualizing the Impact")
+    st.table(feature_impact_df)
 
-# Combined Ratio Comparison
-fig1, ax1 = plt.subplots()
-bars = ax1.bar(
-    ['Current Combined Ratio', 'Projected Combined Ratio'],
-    [current_combined_ratio, new_combined_ratio],
-    color=['#1f77b4', '#ff7f0e']
-)
-ax1.set_ylabel('Combined Ratio (%)')
-ax1.set_title('Improvement in Combined Ratio')
-ax1.bar_label(bars, fmt='%.2f%%')
-st.pyplot(fig1)
+    # --- Detailed Financial Projections ---
+    st.subheader("Detailed Financial Projections")
 
-# Underwriting Profit Over Time
-fig2, ax2 = plt.subplots()
-ax2.plot(
-    financial_df["Year"],
-    financial_df["Current Operating Profit ($M)"],
-    label='Current Operating Profit',
-    marker='o',
-    linestyle='--'
-)
-ax2.plot(
-    financial_df["Year"],
-    financial_df["Projected Operating Profit ($M)"],
-    label='Projected Operating Profit',
-    marker='o'
-)
-ax2.set_xlabel('Year')
-ax2.set_ylabel('Operating Profit ($M)')
-ax2.set_title('Operating Profit Over Time')
-ax2.legend()
-st.pyplot(fig2)
+    # Display the financial projections
+    st.dataframe(
+        financial_df.style.format({
+            "Projected Premiums ($M)": "{:,.2f}",
+            "Current Operating Profit ($M)": "{:,.2f}",
+            "Projected Operating Profit ($M)": "{:,.2f}",
+            "Annual Savings ($M)": "{:,.2f}",
+            "Cumulative Savings ($M)": "{:,.2f}",
+            "Annual Savings from Salesforce ($M)": "{:,.2f}",
+            "Cumulative Salesforce Savings ($M)": "{:,.2f}",
+        })
+    )
 
-# Cumulative Savings Over Time
-fig3, ax3 = plt.subplots()
-ax3.plot(
-    financial_df["Year"],
-    financial_df["Cumulative Savings ($M)"],
-    label='Cumulative Savings',
-    marker='o',
-    color='green'
-)
-ax3.set_xlabel('Year')
-ax3.set_ylabel('Cumulative Savings ($M)')
-ax3.set_title('Cumulative Savings Over Time')
-ax3.legend()
-st.pyplot(fig3)
+    # --- Visualization ---
+    st.header("Visualizing the Impact")
 
-# --- Narrative Explanation ---
-st.header("Transforming Our Business with Salesforce FSC")
+    # Combined Ratio Comparison
+    fig1, ax1 = plt.subplots()
+    bars = ax1.bar(
+        ['Current Combined Ratio', 'Projected Combined Ratio'],
+        [current_combined_ratio, new_combined_ratio],
+        color=['#1f77b4', '#ff7f0e']
+    )
+    ax1.set_ylabel('Combined Ratio (%)')
+    ax1.set_title('Improvement in Combined Ratio')
+    ax1.bar_label(bars, fmt='%.2f%%')
+    st.pyplot(fig1)
 
-st.markdown(f"""
-**The Challenge:**
+    # Operating Profit Over Time
+    fig2, ax2 = plt.subplots()
+    ax2.plot(
+        financial_df["Year"],
+        financial_df["Current Operating Profit ($M)"],
+        label='Current Operating Profit',
+        marker='o',
+        linestyle='--'
+    )
+    ax2.plot(
+        financial_df["Year"],
+        financial_df["Projected Operating Profit ($M)"],
+        label='Projected Operating Profit',
+        marker='o'
+    )
+    ax2.set_xlabel('Year')
+    ax2.set_ylabel('Operating Profit ($M)')
+    ax2.set_title('Operating Profit Over Time')
+    ax2.legend()
+    st.pyplot(fig2)
 
-Our company is seeking ways to improve profitability and operational efficiency in a competitive market.
+    # Cumulative Savings Over Time
+    fig3, ax3 = plt.subplots()
+    ax3.plot(
+        financial_df["Year"],
+        financial_df["Cumulative Savings ($M)"],
+        label='Cumulative Savings',
+        marker='o',
+        color='green'
+    )
+    ax3.set_xlabel('Year')
+    ax3.set_ylabel('Cumulative Savings ($M)')
+    ax3.set_title('Cumulative Savings Over Time')
+    ax3.legend()
+    st.pyplot(fig3)
 
-**The Salesforce Solution:**
+    # --- Narrative Explanation ---
+    st.header("Transforming Our Business with Salesforce FSC")
 
-By investing in **Salesforce Financial Services Cloud (FSC)**, we leverage cutting-edge technology to address these challenges.
+    st.markdown(f"""
+    **The Challenge:**
 
-- **Advanced Data Analytics:** Enables better underwriting decisions, directly reducing our Loss Ratio by **{loss_ratio_reduction_salesforce:.2f}%**.
+    Our company is seeking ways to improve profitability and operational efficiency in a competitive market.
 
-- **Process Automation:** Streamlines operations, reducing our Expense Ratio by **{expense_ratio_reduction_salesforce:.2f}%**.
+    **The Salesforce Solution:**
 
-- **Unified Customer View:** Enhances customer relationships, contributing to a Premium Growth Rate of **{premium_growth_rate:.2f}%**.
+    By investing in **Salesforce Financial Services Cloud (FSC)**, we leverage cutting-edge technology to address these challenges.
 
-**Financial Impact:**
+    - **Advanced Data Analytics:** Enables better underwriting decisions, directly reducing our Loss Ratio by **{loss_ratio_reduction_salesforce:.2f}%**.
 
-Over the next **{analysis_period} years**, these improvements result in:
+    - **Process Automation:** Streamlines operations, reducing our Expense Ratio by **{expense_ratio_reduction_salesforce:.2f}%**.
 
-- **Total Savings:** \${total_savings:.2f} million
-- **Return on Investment:** {roi:.2f}%
-- **Payback Period:** {payback_period if payback_period else 'Not Achieved'} years
+    - **Unified Customer View:** Enhances customer relationships, contributing to a Premium Growth Rate of **{premium_growth_rate:.2f}%**.
 
-**Conclusion:**
+    **Financial Impact:**
 
-Investing in Salesforce FSC not only improves our financial performance but also positions us for sustainable growth and competitive advantage.
+    Over the next **{analysis_period} years**, these improvements result in:
 
-""")
+    - **Total Savings:** \${total_savings:.2f} million
+    - **Return on Investment:** {roi:.2f}%
+    - **Payback Period:** {payback_period if payback_period else 'Not Achieved'} years
 
-# --- Download Options ---
-st.subheader("Download Your Results")
+    **Conclusion:**
 
-csv = financial_df.to_csv(index=False)
-st.download_button(
-    label="Download Financial Projections as CSV",
-    data=csv,
-    file_name='financial_projections.csv',
-    mime='text/csv',
-)
+    Investing in Salesforce FSC not only improves our financial performance but also positions us for sustainable growth and competitive advantage.
+    """)
 
-# Save the executive summary text for copying
-st.session_state['executive_summary_text'] = f"""
-**Projected Improvement in Combined Ratio:**
+    # --- Download Options ---
+    st.subheader("Download Your Results")
 
-- The combined ratio is projected to improve from **{current_combined_ratio:.2f}%** to **{new_combined_ratio:.2f}%**, indicating enhanced profitability.
+    csv = financial_df.to_csv(index=False)
+    st.download_button(
+        label="Download Financial Projections as CSV",
+        data=csv,
+        file_name='financial_projections.csv',
+        mime='text/csv',
+    )
 
-**Total Financial Impact:**
+    # Save the executive summary text for copying
+    executive_summary_text = f"""
+    **Projected Improvement in Combined Ratio:**
 
-- **Total Investment:** \${total_investment:.2f} million
-- **Total Savings Over {analysis_period} Years:** \${total_savings:.2f} million
-- **Return on Investment (ROI):** {roi:.2f}%
-- **Payback Period:** {payback_period if payback_period else 'Not Achieved'} years
-"""
+    - The combined ratio is projected to improve from **{current_combined_ratio:.2f}%** to **{new_combined_ratio:.2f}%**, indicating enhanced profitability.
 
-st.markdown("""
-### **Copy of Executive Summary for Reports**
+    **Total Financial Impact:**
 
-*You can copy the text below for use in your presentations or reports.*
+    - **Total Investment:** \${total_investment:.2f} million
+    - **Total Savings Over {analysis_period} Years:** \${total_savings:.2f} million
+    - **Return on Investment (ROI):** {roi:.2f}%
+    - **Payback Period:** {payback_period if payback_period else 'Not Achieved'} years
+    """
 
----
+    st.markdown("""
+    ### **Copy of Executive Summary for Reports**
 
-""" + st.session_state['executive_summary_text'])
+    *You can copy the text below for use in your presentations or reports.*
+
+    ---
+
+    """ + executive_summary_text)
+
+with tab2:
+    # --- User Guide Content ---
+    st.title("User Guide")
+
+    st.header("Introduction")
+    st.markdown("""
+    Welcome to the **P&C Carrier Combined Ratio Improvement Calculator**. This tool helps you project the financial impact of investing in Salesforce Financial Services Cloud (FSC) on your company's combined ratio and profitability.
+
+    The calculator allows you to input your company's current financial metrics, expected improvements, and investment costs to estimate potential savings and return on investment (ROI).
+    """)
+
+    st.header("How the Calculator Works")
+    st.markdown("""
+    The calculator uses a financial model that projects the impact of changes in loss ratio and expense ratio on your company's profitability over a specified analysis period. It takes into account:
+
+    - **Gross Written Premiums (GWP):** The total premiums before deductions.
+    - **Loss Ratio:** The percentage of premiums paid out in claims.
+    - **Expense Ratio:** The percentage of premiums used to cover operating expenses.
+    - **Combined Ratio:** The sum of the loss ratio and expense ratio; a key measure of underwriting profitability.
+
+    By inputting expected reductions in the loss ratio and expense ratio due to operational improvements (such as those from implementing Salesforce FSC), the calculator projects:
+
+    - **New Combined Ratio**
+    - **Annual and Cumulative Savings**
+    - **Return on Investment (ROI)**
+    - **Payback Period**
+    """)
+
+    st.header("Step-by-Step Instructions")
+
+    st.markdown("""
+    **Step 1: Enter Current Financial Metrics**
+
+    - **Annual Gross Written Premiums ($M):** Input your company's total annual premiums in millions of dollars.
+    - **Current Loss Ratio (%):** Enter your company's current loss ratio.
+    - **Current Expense Ratio (%):** Enter your company's current expense ratio.
+
+    **Step 2: Input Expected Improvements After Investment**
+
+    - **Expected Reduction in Loss Ratio (%):** Estimate the percentage reduction in the loss ratio due to improvements.
+    - **Expected Reduction in Expense Ratio (%):** Estimate the percentage reduction in the expense ratio.
+    - **Annual Premium Growth Rate (%):** Enter the expected annual growth rate of premiums.
+    - **Analysis Period (Years):** Choose the number of years over which to analyze the impact.
+
+    **Step 3: Provide Salesforce FSC Investment Costs**
+
+    - **Initial Investment Cost ($M):** Input the upfront cost of investing in Salesforce FSC.
+    - **Annual Ongoing Costs ($M):** Enter the expected annual costs associated with Salesforce FSC.
+
+    **Step 4: Add Other Ongoing Costs (Optional)**
+
+    - **Annual Other Ongoing Costs ($M):** Include any additional annual costs not related to Salesforce.
+
+    **Step 5: Attribute Improvements to Salesforce**
+
+    - **Loss Ratio Reduction Attributable to Salesforce (%):** Estimate the portion of the loss ratio reduction directly due to Salesforce.
+    - **Expense Ratio Reduction Attributable to Salesforce (%):** Estimate the portion of the expense ratio reduction directly due to Salesforce.
+
+    **Step 6: Review the Results**
+
+    - The calculator will display an **Executive Summary** with key financial impacts.
+    - **Financial Highlights** provide detailed metrics.
+    - **Visualizations** help you see the projected improvements over time.
+    - The **Narrative Explanation** summarizes how Salesforce FSC contributes to these improvements.
+
+    **Step 7: Download Your Results**
+
+    - Use the **Download** option to export the financial projections as a CSV file.
+    - Copy the **Executive Summary** for use in reports or presentations.
+    """)
+
+    st.header("Understanding the Model")
+
+    st.markdown("""
+    The calculator's model projects financial outcomes based on the inputs provided:
+
+    - **Gross Written Premiums (GWP):** Projected to grow annually based on the **Annual Premium Growth Rate**.
+    - **Current Operating Profit:** Calculated by subtracting losses and expenses from GWP using the current loss and expense ratios.
+    - **Projected Operating Profit:** Calculated using the new, improved loss and expense ratios.
+    - **Annual Savings:** The difference between the projected and current operating profits.
+    - **Cumulative Savings:** The total savings accumulated over the analysis period.
+    - **Return on Investment (ROI):** Calculated by dividing the total savings by the total investment cost.
+    - **Payback Period:** The time it takes for cumulative savings to equal the total investment cost.
+
+    **Attribution to Salesforce:**
+
+    - The model separates the portion of savings directly attributable to Salesforce FSC based on the percentages provided.
+    - This helps in understanding the specific financial impact of the Salesforce investment.
+    """)
+
+    st.header("Tips for Using the Calculator")
+
+    st.markdown("""
+    - **Use Realistic Estimates:** Input conservative and realistic numbers for expected improvements.
+    - **Understand Attribution:** Carefully consider what portion of improvements can be directly attributed to Salesforce FSC.
+    - **Explore Scenarios:** Try different inputs to see how changes affect the financial outcomes.
+    - **Consult Stakeholders:** Engage with your finance and operations teams to gather accurate data.
+    """)
+
+    st.header("Need Assistance?")
+
+    st.markdown("""
+    If you have any questions or need further assistance:
+
+    - **Contact Us:** Reach out to your Salesforce representative or financial analyst.
+    - **Provide Feedback:** We welcome your feedback to improve the calculator.
+    """)
+
+    st.header("Disclaimer")
+
+    st.markdown("""
+    This calculator is a decision-support tool intended to provide estimates based on the inputs provided. Actual results may vary. Always consult with a financial professional before making investment decisions.
+    """)
