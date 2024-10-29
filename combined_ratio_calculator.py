@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+from streamlit_chat import message
+import openai
 
 # --- Configurations ---
 st.set_page_config(
@@ -8,6 +10,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# --- Set up OpenAI API Key ---
+openai.api_key = 'your_openai_api_key'  # Replace with your OpenAI API key
 
 # --- Helper Functions ---
 def calculate_combined_ratio(loss_ratio, expense_ratio):
@@ -105,7 +110,7 @@ def project_financials(
     )
 
 # --- Create Tabs ---
-tab1, tab2 = st.tabs(["Calculator", "User Guide"])
+tab1, tab2 = st.tabs(["Calculator", "User Guide & AI Assistant"])
 
 with tab1:
     # --- Sidebar for User Inputs ---
@@ -373,12 +378,11 @@ with tab1:
     *You can copy the text below for use in your presentations or reports.*
 
     ---
-
     """ + executive_summary_text)
 
 with tab2:
     # --- User Guide Content ---
-    st.title("User Guide")
+    st.title("User Guide & AI Assistant")
 
     st.header("Introduction")
     st.markdown("""
@@ -386,6 +390,50 @@ with tab2:
 
     The calculator allows you to input your company's current financial metrics, expected improvements, and investment costs to estimate potential savings and return on investment (ROI).
     """)
+
+    # --- AI Assistant Section ---
+    st.header("Chat with the AI Assistant")
+    st.markdown("""
+    **Need help estimating input values?** Ask our AI assistant for suggestions and guidance.
+    """)
+
+    # Initialize session state for messages
+    if 'messages' not in st.session_state:
+        st.session_state['messages'] = [
+            {'role': 'system', 'content': 'You are an AI assistant that helps users estimate reasonable values for financial metrics in an insurance calculator. Provide clear and helpful suggestions based on industry standards and best practices.'}
+        ]
+
+    # Display previous messages
+    for i, msg in enumerate(st.session_state['messages'][1:]):  # Skip the system prompt
+        if msg['role'] == 'user':
+            message(msg['content'], is_user=True, key=str(i) + '_user')
+        else:
+            message(msg['content'], key=str(i))
+
+    # User input
+    user_input = st.text_input("Type your question here...", key='input')
+
+    if user_input:
+        # Append user message
+        st.session_state['messages'].append({'role': 'user', 'content': user_input})
+
+        # Generate AI response
+        response = openai.ChatCompletion.create(
+            model='gpt-3.5-turbo',
+            messages=st.session_state['messages'],
+            temperature=0.7,
+            max_tokens=150,
+            n=1,
+            stop=None,
+        )
+
+        ai_message = response['choices'][0]['message']['content']
+
+        # Append assistant's response
+        st.session_state['messages'].append({'role': 'assistant', 'content': ai_message})
+
+        # Display assistant's response
+        message(ai_message, key=str(len(st.session_state['messages'])))
 
     st.header("How the Calculator Works")
     st.markdown("""
@@ -480,7 +528,7 @@ with tab2:
     st.markdown("""
     If you have any questions or need further assistance:
 
-    - **Contact Us:** Reach out to your Salesforce representative or financial analyst.
+    - **Chat with the AI Assistant:** Use the chat above to get suggestions and answers.
     - **Provide Feedback:** We welcome your feedback to improve the calculator.
     """)
 
