@@ -21,13 +21,6 @@ if openai.api_key is None:
     st.error("Error: OpenAI API key is missing. Please set the OPENAI_API_KEY environment variable.")
     st.stop()
 
-# Optional: Validate the API key by making a test call
-try:
-    openai.Model.list()
-except Exception as e:
-    st.error(f"An error occurred with the OpenAI API: {e}")
-    st.stop()
-
 # --- Helper Functions ---
 def calculate_combined_ratio(loss_ratio, expense_ratio):
     """
@@ -187,7 +180,7 @@ def get_ai_response(messages):
         )
         return response['choices'][0]['message']['content']
     except Exception as e:
-        st.error(f"An error occurred while generating a completion: {e}")
+        st.error(f"An error occurred with the OpenAI API: {e}")
         return ""
 
 # --- Create Tabs ---
