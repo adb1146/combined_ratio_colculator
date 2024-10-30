@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from streamlit_chat import message
 import openai
+import os
 
 # --- Configurations ---
 st.set_page_config(
@@ -12,7 +13,13 @@ st.set_page_config(
 )
 
 # --- Set up OpenAI API Key ---
-openai.api_key = st.secrets["openai"]["api_key"]
+# Load the API key from the environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Check if the API key was successfully loaded
+if openai.api_key is None:
+    st.error("OpenAI API key is missing. Please set the OPENAI_API_KEY environment variable.")
+    st.stop()
 
 # --- Helper Functions ---
 def calculate_combined_ratio(loss_ratio, expense_ratio):
@@ -437,7 +444,7 @@ with tab2:
             message(ai_message, key=str(len(st.session_state['messages'])))
 
         except openai.error.AuthenticationError:
-            st.error("Authentication Error: Please check your OpenAI API key in the secrets.toml file.")
+            st.error("Authentication Error: Please check your OpenAI API key in the environment variables.")
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
 
