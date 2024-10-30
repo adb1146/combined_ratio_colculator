@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from streamlit_chat import message
 import openai
-import os
+import os  # Import the os module
 
 # --- Configurations ---
 st.set_page_config(
