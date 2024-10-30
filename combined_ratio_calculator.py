@@ -13,8 +13,8 @@ st.set_page_config(
 )
 
 # --- Set up OpenAI API Key ---
-# Use an environment variable to keep your API key secure
-openai.api_key = os.getenv("OPENAI_API_KEY")  # Ensure your API key is set as an environment variable
+# Assuming the OpenAI API key is set in the environment
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Check if the API key was successfully loaded
 if openai.api_key is None:
@@ -426,9 +426,9 @@ with tab2:
 
         # Generate AI response
         try:
-            # New API call format
+            # Using the new API call format
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",  # Specify the model you want to use
+                model="gpt-3.5-turbo",  # Specify the model
                 messages=st.session_state['messages']
             )
 
@@ -441,10 +441,8 @@ with tab2:
             # Display assistant's response
             message(ai_message, key=str(len(st.session_state['messages'])))
 
-        except openai.error.AuthenticationError:
-            st.error("Authentication Error: Please check your OpenAI API key in the environment variables.")
-        except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
+        except openai.error.OpenAIError as e:
+            st.error(f"An error occurred: {e}")
 
     # --- User Guide Sections ---
     st.header("How the Calculator Works")
