@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from streamlit_chat import message
 import openai
-import os  # Import the os module
+import os  # Import os to access environment variables
 
 # --- Configurations ---
 st.set_page_config(
@@ -13,8 +13,8 @@ st.set_page_config(
 )
 
 # --- Set up OpenAI API Key ---
-# Load the API key from the environment variable
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Use an environment variable to keep your API key secure
+openai.api_key = os.getenv("OPENAI_API_KEY")  # Ensure your API key is set as an environment variable
 
 # Check if the API key was successfully loaded
 if openai.api_key is None:
@@ -421,23 +421,21 @@ with tab2:
     user_input = st.text_input("Type your question here...", key='input')
 
     if user_input:
-        # Append user message
+        # Append user message to the session state
         st.session_state['messages'].append({'role': 'user', 'content': user_input})
 
         # Generate AI response
         try:
+            # New API call format
             response = openai.ChatCompletion.create(
-                model='gpt-3.5-turbo',
-                messages=st.session_state['messages'],
-                temperature=0.7,
-                max_tokens=150,
-                n=1,
-                stop=None,
+                model="gpt-3.5-turbo",  # Specify the model you want to use
+                messages=st.session_state['messages']
             )
 
-            ai_message = response['choices'][0]['message']['content']
+            # Access the response content
+            ai_message = response.choices[0].message['content']
 
-            # Append assistant's response
+            # Append assistant's response to the session state
             st.session_state['messages'].append({'role': 'assistant', 'content': ai_message})
 
             # Display assistant's response
@@ -448,6 +446,7 @@ with tab2:
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
 
+    # --- User Guide Sections ---
     st.header("How the Calculator Works")
     st.markdown("""
     The calculator uses a financial model that projects the impact of changes in loss ratio and expense ratio on your company's profitability over a specified analysis period. It takes into account:
