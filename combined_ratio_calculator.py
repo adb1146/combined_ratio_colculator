@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from streamlit_chat import message
 import openai
 import os
-from openai.error import AuthenticationError, RateLimitError, OpenAIError  # Explicitly import error classes
 
 # --- Configurations ---
 st.set_page_config(
@@ -25,11 +24,8 @@ if openai.api_key is None:
 # Optional: Validate the API key by making a test call
 try:
     openai.Model.list()
-except AuthenticationError:
-    st.error("Invalid OpenAI API key. Please check your OPENAI_API_KEY environment variable.")
-    st.stop()
 except Exception as e:
-    st.error(f"An error occurred while validating the OpenAI API key: {e}")
+    st.error(f"An error occurred with the OpenAI API: {e}")
     st.stop()
 
 # --- Helper Functions ---
@@ -190,17 +186,8 @@ def get_ai_response(messages):
             messages=messages
         )
         return response['choices'][0]['message']['content']
-    except AuthenticationError:
-        st.error("Authentication failed. Please check your OpenAI API key.")
-        return ""
-    except RateLimitError:
-        st.error("Rate limit exceeded. Please wait and try again later.")
-        return ""
-    except OpenAIError as e:
-        st.error(f"An OpenAI error occurred: {e}")
-        return ""
     except Exception as e:
-        st.error(f"An unexpected error occurred: {e}")
+        st.error(f"An error occurred while generating a completion: {e}")
         return ""
 
 # --- Create Tabs ---
