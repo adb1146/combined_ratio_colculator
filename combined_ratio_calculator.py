@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # --- Set up OpenAI API Key ---
-openai.api_key = 'your_openai_api_key'  # Replace with your OpenAI API key
+openai.api_key = st.secrets["openai"]["api_key"]
 
 # --- Helper Functions ---
 def calculate_combined_ratio(loss_ratio, expense_ratio):
@@ -418,22 +418,28 @@ with tab2:
         st.session_state['messages'].append({'role': 'user', 'content': user_input})
 
         # Generate AI response
-        response = openai.ChatCompletion.create(
-            model='gpt-3.5-turbo',
-            messages=st.session_state['messages'],
-            temperature=0.7,
-            max_tokens=150,
-            n=1,
-            stop=None,
-        )
+        try:
+            response = openai.ChatCompletion.create(
+                model='gpt-3.5-turbo',
+                messages=st.session_state['messages'],
+                temperature=0.7,
+                max_tokens=150,
+                n=1,
+                stop=None,
+            )
 
-        ai_message = response['choices'][0]['message']['content']
+            ai_message = response['choices'][0]['message']['content']
 
-        # Append assistant's response
-        st.session_state['messages'].append({'role': 'assistant', 'content': ai_message})
+            # Append assistant's response
+            st.session_state['messages'].append({'role': 'assistant', 'content': ai_message})
 
-        # Display assistant's response
-        message(ai_message, key=str(len(st.session_state['messages'])))
+            # Display assistant's response
+            message(ai_message, key=str(len(st.session_state['messages'])))
+
+        except openai.error.AuthenticationError:
+            st.error("Authentication Error: Please check your OpenAI API key in the secrets.toml file.")
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
 
     st.header("How the Calculator Works")
     st.markdown("""
