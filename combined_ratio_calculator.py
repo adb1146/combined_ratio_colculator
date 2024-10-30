@@ -21,11 +21,43 @@ if openai.api_key is None:
     st.error("Error: OpenAI API key is missing. Please set the OPENAI_API_KEY environment variable.")
     st.stop()
 
+# Optional: Validate the API key by making a test call
+try:
+    openai.Model.list()
+except openai.error.AuthenticationError:
+    st.error("Invalid OpenAI API key. Please check your OPENAI_API_KEY environment variable.")
+    st.stop()
+except Exception as e:
+    st.error(f"An error occurred while validating the OpenAI API key: {e}")
+    st.stop()
+
 # --- Helper Functions ---
 def calculate_combined_ratio(loss_ratio, expense_ratio):
+    """
+    Calculate the combined ratio by summing the loss and expense ratios.
+    
+    Parameters:
+        loss_ratio (float): Current loss ratio percentage.
+        expense_ratio (float): Current expense ratio percentage.
+    
+    Returns:
+        float: Combined ratio percentage.
+    """
     return loss_ratio + expense_ratio
 
 def calculate_new_ratios(current_loss_ratio, loss_ratio_reduction, current_expense_ratio, expense_ratio_reduction):
+    """
+    Calculate the new loss and expense ratios after reductions.
+    
+    Parameters:
+        current_loss_ratio (float): Current loss ratio percentage.
+        loss_ratio_reduction (float): Reduction in loss ratio percentage.
+        current_expense_ratio (float): Current expense ratio percentage.
+        expense_ratio_reduction (float): Reduction in expense ratio percentage.
+    
+    Returns:
+        tuple: New loss ratio and new expense ratio percentages.
+    """
     new_loss_ratio = current_loss_ratio - loss_ratio_reduction
     new_expense_ratio = current_expense_ratio - expense_ratio_reduction
     return new_loss_ratio, new_expense_ratio
@@ -35,6 +67,26 @@ def project_financials(
     new_loss_ratio, new_expense_ratio, analysis_period, ongoing_costs, initial_investment,
     loss_ratio_reduction_salesforce, expense_ratio_reduction_salesforce, ongoing_costs_salesforce
 ):
+    """
+    Project financial metrics over the analysis period.
+    
+    Parameters:
+        current_gwp (float): Current Gross Written Premiums in millions.
+        premium_growth_rate (float): Annual premium growth rate percentage.
+        current_loss_ratio (float): Current loss ratio percentage.
+        current_expense_ratio (float): Current expense ratio percentage.
+        new_loss_ratio (float): New loss ratio percentage after reduction.
+        new_expense_ratio (float): New expense ratio percentage after reduction.
+        analysis_period (int): Number of years to analyze.
+        ongoing_costs (float): Total annual ongoing costs in millions.
+        initial_investment (float): Initial investment cost in millions.
+        loss_ratio_reduction_salesforce (float): Loss ratio reduction attributable to Salesforce.
+        expense_ratio_reduction_salesforce (float): Expense ratio reduction attributable to Salesforce.
+        ongoing_costs_salesforce (float): Annual ongoing costs for Salesforce in millions.
+    
+    Returns:
+        tuple: Financial DataFrame and various financial metrics.
+    """
     years = list(range(1, analysis_period + 1))
     gwp_list = []
     profit_current_list = []
@@ -47,6 +99,9 @@ def project_financials(
     cumulative_cash_flow_salesforce = -initial_investment
     payback_period = None
     payback_period_salesforce = None
+
+    running_cumulative_savings = 0
+    running_cumulative_savings_salesforce = 0
 
     for year in years:
         gwp = current_gwp * (1 + premium_growth_rate / 100) ** (year - 1)
@@ -67,7 +122,8 @@ def project_financials(
         # Total Savings
         savings = profit_new - profit_current
         annual_savings.append(savings)
-        cumulative_savings.append(sum(annual_savings))
+        running_cumulative_savings += savings
+        cumulative_savings.append(running_cumulative_savings)
 
         # Savings Attributable to Salesforce
         loss_savings_salesforce = gwp * loss_ratio_reduction_salesforce / 100
@@ -75,7 +131,8 @@ def project_financials(
         savings_salesforce = loss_savings_salesforce + expense_savings_salesforce
         savings_salesforce -= ongoing_costs_salesforce  # Subtract ongoing Salesforce costs
         annual_savings_salesforce.append(savings_salesforce)
-        cumulative_savings_salesforce.append(sum(annual_savings_salesforce))
+        running_cumulative_savings_salesforce += savings_salesforce
+        cumulative_savings_salesforce.append(running_cumulative_savings_salesforce)
 
         # Cumulative Cash Flow
         cumulative_cash_flow += savings - ongoing_costs  # Subtract total ongoing costs
@@ -92,8 +149,8 @@ def project_financials(
     total_investment_salesforce = initial_investment + ongoing_costs_salesforce * analysis_period
 
     # Total Savings
-    total_savings = cumulative_savings[-1] - (ongoing_costs * analysis_period)
-    total_savings_salesforce = cumulative_savings_salesforce[-1]
+    total_savings = running_cumulative_savings - (ongoing_costs * analysis_period)
+    total_savings_salesforce = running_cumulative_savings_salesforce
 
     # ROI Calculations
     roi = (total_savings / total_investment) * 100 if total_investment != 0 else 0
@@ -115,6 +172,35 @@ def project_financials(
         financial_df, roi, payback_period, total_investment, total_savings,
         roi_salesforce, payback_period_salesforce, total_investment_salesforce, total_savings_salesforce
     )
+
+def get_ai_response(messages):
+    """
+    Sends the conversation messages to OpenAI's ChatCompletion API and retrieves the assistant's response.
+
+    Parameters:
+        messages (list): A list of dictionaries containing the conversation history.
+
+    Returns:
+        str: The assistant's reply.
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages
+        )
+        return response['choices'][0]['message']['content']
+    except openai.error.AuthenticationError:
+        st.error("Authentication failed. Please check your OpenAI API key.")
+        return ""
+    except openai.error.RateLimitError:
+        st.error("Rate limit exceeded. Please wait and try again later.")
+        return ""
+    except openai.error.OpenAIError as e:
+        st.error(f"An OpenAI error occurred: {e}")
+        return ""
+    except Exception as e:
+        st.error(f"An unexpected error occurred: {e}")
+        return ""
 
 # --- Create Tabs ---
 tab1, tab2 = st.tabs(["Calculator", "User Guide & AI Assistant"])
@@ -425,30 +511,14 @@ with tab2:
         st.session_state['messages'].append({"role": "user", "content": user_input})
 
         # Generate AI response
-        try:
-            # Using the new API call format with error handling
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=st.session_state['messages']
-            )
+        ai_message = get_ai_response(st.session_state['messages'])
 
-            # Access the response content
-            ai_message = response.choices[0].message['content']
-
+        if ai_message:
             # Append assistant's response to the session state
             st.session_state['messages'].append({"role": "assistant", "content": ai_message})
 
             # Display assistant's response
             message(ai_message, key=str(len(st.session_state['messages'])))
-
-        except openai.error.AuthenticationError:
-            st.error("Authentication failed. Please check your OpenAI API key.")
-        except openai.error.RateLimitError:
-            st.error("Rate limit exceeded. Please wait and try again later.")
-        except openai.error.OpenAIError as e:
-            st.error(f"An OpenAI error occurred: {e}")
-        except Exception as e:
-            st.error(f"An unexpected error occurred: {e}")
 
     # --- User Guide Sections ---
     st.header("How the Calculator Works")
