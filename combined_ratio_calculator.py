@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from streamlit_chat import message
 import openai
-import os  # Import os to access environment variables
+import os
 
 # --- Configurations ---
 st.set_page_config(
@@ -13,12 +13,12 @@ st.set_page_config(
 )
 
 # --- Set up OpenAI API Key ---
-# Assuming the OpenAI API key is set in the environment
+# Use an environment variable to keep your API key secure
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Check if the API key was successfully loaded
 if openai.api_key is None:
-    st.error("OpenAI API key is missing. Please set the OPENAI_API_KEY environment variable.")
+    st.error("Error: OpenAI API key is missing. Please set the OPENAI_API_KEY environment variable.")
     st.stop()
 
 # --- Helper Functions ---
@@ -407,7 +407,7 @@ with tab2:
     # Initialize session state for messages
     if 'messages' not in st.session_state:
         st.session_state['messages'] = [
-            {'role': 'system', 'content': 'You are an AI assistant that helps users estimate reasonable values for financial metrics in an insurance calculator. Provide clear and helpful suggestions based on industry standards and best practices.'}
+            {"role": "system", "content": "You are an AI assistant that helps users estimate reasonable values for financial metrics in an insurance calculator. Provide clear and helpful suggestions based on industry standards and best practices."}
         ]
 
     # Display previous messages
@@ -422,13 +422,13 @@ with tab2:
 
     if user_input:
         # Append user message to the session state
-        st.session_state['messages'].append({'role': 'user', 'content': user_input})
+        st.session_state['messages'].append({"role": "user", "content": user_input})
 
         # Generate AI response
         try:
-            # Using the new API call format
+            # Using the new API call format with error handling
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",  # Specify the model
+                model="gpt-3.5-turbo",
                 messages=st.session_state['messages']
             )
 
@@ -436,13 +436,19 @@ with tab2:
             ai_message = response.choices[0].message['content']
 
             # Append assistant's response to the session state
-            st.session_state['messages'].append({'role': 'assistant', 'content': ai_message})
+            st.session_state['messages'].append({"role": "assistant", "content": ai_message})
 
             # Display assistant's response
             message(ai_message, key=str(len(st.session_state['messages'])))
 
+        except openai.error.AuthenticationError:
+            st.error("Authentication failed. Please check your OpenAI API key.")
+        except openai.error.RateLimitError:
+            st.error("Rate limit exceeded. Please wait and try again later.")
         except openai.error.OpenAIError as e:
-            st.error(f"An error occurred: {e}")
+            st.error(f"An OpenAI error occurred: {e}")
+        except Exception as e:
+            st.error(f"An unexpected error occurred: {e}")
 
     # --- User Guide Sections ---
     st.header("How the Calculator Works")
